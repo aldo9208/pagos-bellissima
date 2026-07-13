@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pagos y Notas de Crédito · Bellíssima</title>
+<style>
+  :root{--bg:#faf7fb;--surface:#fff;--surface2:#f6f1f8;--muted:#7a7285;--line:#ece6f0;--brand:#6b21a8;
+        --ok:#16a34a;--ok-bg:#f0fdf4;--warn:#d97706;--warn-bg:#fffbeb;--danger:#dc2626;--danger-bg:#fef2f2;--r:12px}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:#1e1b24;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.45}
+  .wrap{max-width:1240px;margin:0 auto;padding:18px 16px 60px}
+  h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.3px}
+  .sub{color:var(--muted);font-size:12.5px;margin:4px 0 0}
+  .bar{height:4px;width:56px;background:var(--brand);border-radius:99px;margin:10px 0 16px}
+  .btn{background:var(--brand);color:#fff;border:none;border-radius:9px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer}
+  .btn:disabled{opacity:.5;cursor:default}
+  .btn-s{background:#fff;color:var(--brand);border:1px solid var(--line)}
+  .btn-sm{padding:5px 10px;font-size:12.5px;border-radius:8px}
+  .btn-ok{background:var(--ok)}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:6px 0 16px;flex-wrap:wrap}
+  .tab{padding:9px 16px;border:none;background:none;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tab.on{color:var(--brand);border-bottom-color:var(--brand)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:16px}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:11px 13px}
+  .stat .n{font-size:18px;font-weight:700}
+  .stat .l{font-size:11px;color:var(--muted);margin-top:2px}
+  .stat.acc .n{color:var(--brand)} .stat.warn .n{color:var(--warn)} .stat.ok .n{color:var(--ok)} .stat.dgr .n{color:var(--danger)}
+  table{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface)}
+  th{position:sticky;top:0;background:var(--surface2);text-align:right;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th.l{text-align:left}
+  td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;vertical-align:top}
+  td.l{text-align:left;white-space:normal}
+  tbody tr:hover{background:#faf6fc}
+  .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:var(--r)}
+  .folio{font-weight:700}
+  .prov{color:var(--muted);font-size:12px;display:block}
+  .badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;margin-right:3px}
+  .b-ok{background:var(--ok-bg);color:var(--ok)}
+  .b-warn{background:var(--warn-bg);color:var(--warn)}
+  .b-dgr{background:var(--danger-bg);color:var(--danger)}
+  .b-acc{background:#f3e8ff;color:var(--brand)}
+  .alert{display:block;font-size:11px;margin-top:3px;padding:3px 8px;border-radius:6px}
+  .a-nc{background:var(--danger-bg);color:var(--danger)}
+  .a-pp{background:var(--ok-bg);color:var(--ok)}
+  .muted{color:var(--muted);font-size:12px}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  input,select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff;font-family:inherit}
+  input[type=search]{flex:1;min-width:160px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .chip{padding:5px 11px;border:1px solid var(--line);background:#fff;border-radius:99px;font-size:12px;cursor:pointer;color:var(--muted)}
+  .chip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+  .modal{position:fixed;inset:0;background:rgba(20,10,30,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+  .modal.on{display:flex}
+  .card{background:#fff;border-radius:16px;padding:20px;max-width:440px;width:100%;max-height:90vh;overflow:auto}
+  .card h3{margin:0 0 4px;font-size:17px}
+  .fld{margin:12px 0}
+  .fld label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px}
+  .fld input,.fld select,.fld textarea{width:100%}
+  .fld textarea{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;min-height:52px}
+  .row2{display:flex;gap:8px}.row2>*{flex:1}
+  .status{font-size:13px;color:var(--brand);min-height:18px;margin-top:8px}
+  .sug{background:var(--warn-bg);border:1px solid #f4e2c0;color:#92620a;border-radius:8px;padding:8px 10px;font-size:12px;margin-top:8px}
+  .empty{padding:34px;text-align:center;color:var(--muted)}
+  .lineitem{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+  @media(max-width:860px){
+    thead{display:none} table,tbody,tr,td{display:block;width:100%}
+    tbody tr{border-bottom:2px solid var(--line);padding:6px 0}
+    td{border:none;text-align:right;padding:4px 12px;display:flex;justify-content:space-between;gap:10px}
+    td.l{text-align:left;display:block}
+    td::before{content:attr(data-l);color:var(--muted);font-size:11px;text-transform:uppercase}
+    td.l::before{content:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Pagos y Notas de Crédito</h1>
+  <p class="sub">Bellíssima · cuentas por pagar a proveedores · notas de crédito · pronto pago</p>
+  <div class="bar"></div>
+
+  <div id="loading" class="status">Cargando datos…</div>
+
+  <div id="app" style="display:none">
+    <div class="tabs">
+      <button id="t-fact" class="tab on" onclick="verTab('fact')">Facturas por pagar</button>
+      <button id="t-nc" class="tab" onclick="verTab('nc')">Notas de crédito</button>
+      <button id="t-pag" class="tab" onclick="verTab('pag')">Pagos</button>
+      <button id="t-prov" class="tab" onclick="verTab('prov')">Proveedores</button>
+    </div>
+
+    <!-- FACTURAS -->
+    <div id="p-fact">
+      <div class="stats" id="f-stats"></div>
+      <div class="filters">
+        <input id="f-q" type="search" placeholder="Buscar folio o proveedor…" autocomplete="off">
+      </div>
+      <div class="chips" id="f-chips">
+        <span class="chip on" data-f="pend">Pendientes</span>
+        <span class="chip" data-f="pp">Ventana pronto pago</span>
+        <span class="chip" data-f="ncf">Faltante sin NC</span>
+        <span class="chip" data-f="pag">Pagadas</span>
+        <span class="chip" data-f="all">Todas</span>
+      </div>
+      <div class="muted" id="f-count" style="margin-bottom:6px"></div>
+      <div class="tablewrap">
+        <table><thead><tr>
+          <th class="l">Factura</th><th class="l">Fecha</th><th>Total</th><th>NC</th><th>Pagado</th><th>Saldo</th><th class="l">Estado</th><th></th>
+        </tr></thead><tbody id="f-tb"></tbody></table>
+      </div>
+    </div>
+
+    <!-- NOTAS DE CREDITO -->
+    <div id="p-nc" style="display:none">
+      <div class="stats" id="n-stats"></div>
+      <button class="btn" onclick="abrirNC(null)">+ Registrar nota de crédito</button>
+      <div class="muted" id="n-count" style="margin:12px 0 6px"></div>
+      <div class="tablewrap">
+        <table><thead><tr>
+          <th class="l">Folio NC</th><th class="l">Proveedor</th><th class="l">Factura</th><th class="l">Tipo</th><th class="l">Fecha</th><th>Monto</th><th class="l">Estado</th><th></th>
+        </tr></thead><tbody id="n-tb"></tbody></table>
+      </div>
+    </div>
+
+    <!-- PAGOS -->
+    <div id="p-pag" style="display:none">
+      <div class="stats" id="g-stats"></div>
+      <button class="btn" onclick="abrirPago(null)">+ Registrar pago</button>
+      <div class="muted" id="g-count" style="margin:12px 0 6px"></div>
+      <div class="tablewrap">
+        <table><thead><tr>
+          <th class="l">Fecha</th><th class="l">Proveedor</th><th class="l">Factura</th><th class="l">Referencia</th><th>Monto</th><th></th>
+        </tr></thead><tbody id="g-tb"></tbody></table>
+      </div>
+    </div>
+
+    <!-- PROVEEDORES -->
+    <div id="p-prov" style="display:none">
+      <p class="muted">Configura los días de crédito y el descuento por pronto pago de cada proveedor. Con esto la app calcula el vencimiento y te avisa cuándo conviene pagar antes.</p>
+      <div class="tablewrap">
+        <table><thead><tr>
+          <th class="l">Proveedor</th><th>Días crédito</th><th>Pronto pago %</th><th>Días p/ pronto pago</th><th>Facturas</th><th></th>
+        </tr></thead><tbody id="v-tb"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PAGO -->
+<div class="modal" id="m-pago"><div class="card">
+  <h3>Registrar pago</h3>
+  <p class="muted" id="mp-info"></p>
+  <div class="fld"><label>Factura</label><select id="mp-folio"></select></div>
+  <div class="row2">
+    <div class="fld"><label>Fecha del pago</label><input id="mp-fecha" type="date"></div>
+    <div class="fld"><label>Monto</label><input id="mp-monto" type="number" step="0.01" placeholder="0.00"></div>
+  </div>
+  <div class="fld"><label>Referencia / folio de transferencia</label><input id="mp-ref" type="text" placeholder="ej. SPEI 1234567"></div>
+  <div class="fld"><label>Notas (opcional)</label><textarea id="mp-nota"></textarea></div>
+  <div id="mp-sug"></div>
+  <div class="status" id="mp-status"></div>
+  <div class="row2" style="margin-top:12px">
+    <button class="btn btn-s" onclick="cerrarModal('m-pago')">Cancelar</button>
+    <button class="btn" id="mp-save" onclick="guardarPago()">Guardar pago</button>
+  </div>
+</div></div>
+
+<!-- MODAL NC -->
+<div class="modal" id="m-nc"><div class="card">
+  <h3>Registrar nota de crédito</h3>
+  <p class="muted" id="mn-info"></p>
+  <div class="fld"><label>Factura</label><select id="mn-folio"></select></div>
+  <div class="fld"><label>Tipo de nota de crédito</label><select id="mn-tipo">
+    <option value="faltante">Faltante (mercancía facturada que no llegó)</option>
+    <option value="prontopago">Pronto pago (descuento financiero)</option>
+    <option value="devolucion">Devolución</option>
+    <option value="bonificacion">Bonificación / rebate</option>
+    <option value="otro">Otro</option>
+  </select></div>
+  <div class="row2">
+    <div class="fld"><label>Folio de la NC</label><input id="mn-folionc" type="text" placeholder="ej. NC-1234"></div>
+    <div class="fld"><label>Monto</label><input id="mn-monto" type="number" step="0.01" placeholder="0.00"></div>
+  </div>
+  <div class="row2">
+    <div class="fld"><label>Fecha</label><input id="mn-fecha" type="date"></div>
+    <div class="fld"><label>Estado</label><select id="mn-estado">
+      <option value="esperada">Esperada (aún no la mandan)</option>
+      <option value="recibida">Recibida</option>
+    </select></div>
+  </div>
+  <div class="fld"><label>Notas (opcional)</label><textarea id="mn-nota"></textarea></div>
+  <div id="mn-sug"></div>
+  <div class="status" id="mn-status"></div>
+  <div class="row2" style="margin-top:12px">
+    <button class="btn btn-s" onclick="cerrarModal('m-nc')">Cancelar</button>
+    <button class="btn" id="mn-save" onclick="guardarNC()">Guardar NC</button>
+  </div>
+</div></div>
+
+<!-- MODAL PROVEEDOR -->
+<div class="modal" id="m-prov"><div class="card">
+  <h3 id="mv-title">Configurar proveedor</h3>
+  <div class="row2">
+    <div class="fld"><label>Días de crédito</label><input id="mv-cred" type="number" step="1" placeholder="ej. 30"></div>
+    <div class="fld"><label>Pronto pago %</label><input id="mv-pct" type="number" step="0.01" placeholder="ej. 3"></div>
+  </div>
+  <div class="fld"><label>Días para alcanzar el pronto pago</label><input id="mv-dpp" type="number" step="1" placeholder="ej. 10">
+    <span class="muted">Si pagas dentro de estos días desde la factura, ganas el descuento.</span></div>
+  <div class="status" id="mv-status"></div>
+  <div class="row2" style="margin-top:12px">
+    <button class="btn btn-s" onclick="cerrarModal('m-prov')">Cancelar</button>
+    <button class="btn" onclick="guardarProv()">Guardar</button>
+  </div>
+</div></div>
+
+<!-- MODAL TOTAL FACTURA -->
+<div class="modal" id="m-total"><div class="card">
+  <h3>Total de la factura</h3>
+  <p class="muted" id="mt-info"></p>
+  <div class="fld"><label>Total con IVA (lo que se paga)</label><input id="mt-monto" type="number" step="0.01" placeholder="0.00"></div>
+  <div id="mt-sug"></div>
+  <div class="status" id="mt-status"></div>
+  <div class="row2" style="margin-top:12px">
+    <button class="btn btn-s" onclick="cerrarModal('m-total')">Cancelar</button>
+    <button class="btn" onclick="guardarTotal()">Guardar</button>
+  </div>
+</div></div>
+<script>
+/* ===== Pagos y Notas de Crédito — Bellíssima ===== */
+(function(){
+  var FB={apiKey:'AIzaSyCpFCqO25oDdBne1mOiJarY-ZEBBX0jOVk',authDomain:'bellissima-entradas.firebaseapp.com',projectId:'bellissima-entradas'};
+  var db=null, fs=null;
+  var FACT=[], NC=[], PAGOS=[], PROV={}, tab='fact', filtro='pend', q='';
+  var editProv=null, editTotalFolio=null;
+
+  function nk(s){ s=String(s==null?'':s).trim().toUpperCase(); return s.replace(/^0+/,'')||'0'; }
+  function money(n){ return '$'+(Number(n)||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function money0(n){ return '$'+(Number(n)||0).toLocaleString('es-MX',{maximumFractionDigits:0}); }
+  function hoy(){ var d=new Date(); return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+  function parseFecha(s){
+    if(!s) return null;
+    if(s instanceof Date) return s;
+    var m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m) return new Date(+m[1], +m[2]-1, +m[3]);
+    var d=new Date(s); return isNaN(d)?null:d;
+  }
+  function fmtFecha(s){ var d=parseFecha(s); if(!d) return '—';
+    return d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}); }
+  function diasEntre(a,b){ return Math.round((b-a)/86400000); }
+  function addDias(d,n){ var x=new Date(d.getTime()); x.setDate(x.getDate()+n); return x; }
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  async function conectar(){
+    var appMod=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    var fsMod=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    var apps=appMod.getApps();
+    var app=apps.length?apps[0]:appMod.initializeApp(FB);
+    db=fsMod.getFirestore(app); fs=fsMod;
+  }
+
+  async function cargar(){
+    var lo=document.getElementById('loading');
+    lo.textContent='Cargando facturas…';
+    // 1) órdenes de compra -> facturas (E####) + mapa de costos
+    var ordSnap=await fs.getDocs(fs.collection(db,'ordenesCompra'));
+    var costos={}, facturas=[];
+    ordSnap.forEach(function(d){
+      var o=d.data();
+      var compras=o.compras||[];
+      if(!compras.length && o.folioCompra){
+        compras=[{folio:o.folioCompra, fechaCompra:o.fechaCompra, importeCompra:o.importeCompra, productosRecibidos:o.productosRecibidos||[]}];
+      }
+      compras.forEach(function(c){
+        if(!c.folio) return;
+        var mercancia=0;
+        (c.productosRecibidos||[]).forEach(function(p){
+          mercancia += (p.importeTotal||0);
+          if(p.costoPromedio>0) costos[nk(p.clave)]=p.costoPromedio;
+        });
+        facturas.push({
+          folio:String(c.folio), proveedor:o.proveedor||'(sin proveedor)',
+          fecha:c.fechaCompra||o.fechaCompra||null, orden:o.folio||'',
+          totalPDF:Number(c.importeCompra)||0,
+          mercancia:Math.round(mercancia*100)/100
+        });
+      });
+    });
+
+    // 2) faltantes NETOS por factura.
+    // Una compra se reparte entre sucursales: un faltante en una y un sobrante en otra
+    // = error de distribucion interna, NO es responsabilidad del proveedor.
+    // Por eso neteamos esperado vs recibido por producto a traves de TODAS las sucursales.
+    lo.textContent='Calculando faltantes…';
+    var recSnap=await fs.getDocs(fs.collection(db,'recepciones'));
+    var acum={}; // folio -> clave -> {esp, rec, desc}
+    recSnap.forEach(function(d){
+      var r=d.data(); var fol=String(r.folio||'');
+      if(!/^E/i.test(fol)) return; // solo compras a proveedor (no traspasos)
+      (r.items||[]).forEach(function(i){
+        var cl = String(i.numart || i.clave || '').trim();
+        if(!cl) return;
+        var esp = (i.esperado!=null)?i.esperado:(i.cant||0);
+        var rec = i.recibido||0;
+        if(!acum[fol]) acum[fol]={};
+        if(!acum[fol][cl]) acum[fol][cl]={esp:0, rec:0, desc:(i.desc||i.descripcion||'')};
+        acum[fol][cl].esp += esp;
+        acum[fol][cl].rec += rec;
+      });
+    });
+    var faltPorFolio={};
+    Object.keys(acum).forEach(function(fol){
+      var pz=0, monto=0, det=[], internos=0;
+      Object.keys(acum[fol]).forEach(function(cl){
+        var a=acum[fol][cl];
+        var neto=a.esp-a.rec;
+        if(neto>0){
+          var c = costos[nk(cl)] || 0;
+          pz+=neto; monto+=neto*c;
+          det.push({clave:cl, desc:a.desc, falta:neto, costo:c});
+        } else if(neto<0){ internos++; }
+      });
+      det.sort(function(x,y){ return (y.falta*y.costo)-(x.falta*x.costo); });
+      if(pz>0) faltPorFolio[fol]={pz:pz, monto:monto, det:det};
+    });
+    facturas.forEach(function(f){
+      var x=faltPorFolio[f.folio];
+      f.faltPz = x?x.pz:0;
+      f.faltMonto = x?Math.round(x.monto*100)/100:0;
+      f.faltDet = x?x.det:[];
+    });
+
+    // 3) totales capturados a mano, NC, pagos, proveedores
+    lo.textContent='Cargando pagos y notas de crédito…';
+    var totSnap=await fs.getDocs(fs.collection(db,'facturasTotal'));
+    var totMan={}; totSnap.forEach(function(d){ totMan[d.id]=d.data().total||0; });
+    facturas.forEach(function(f){ f.totalManual=totMan[f.folio]||0; f.total=f.totalManual>0?f.totalManual:f.totalPDF; });
+
+    NC=[]; var ncSnap=await fs.getDocs(fs.collection(db,'notasCredito'));
+    ncSnap.forEach(function(d){ var o=d.data(); o._id=d.id; NC.push(o); });
+    PAGOS=[]; var pgSnap=await fs.getDocs(fs.collection(db,'pagos'));
+    pgSnap.forEach(function(d){ var o=d.data(); o._id=d.id; PAGOS.push(o); });
+    PROV={}; var pvSnap=await fs.getDocs(fs.collection(db,'proveedoresCfg'));
+    pvSnap.forEach(function(d){ PROV[d.id]=d.data(); });
+
+    FACT=facturas.sort(function(a,b){ return String(b.fecha||'').localeCompare(String(a.fecha||'')); });
+    lo.style.display='none';
+    document.getElementById('app').style.display='block';
+    render();
+  }
+
+  // ---- cálculos por factura ----
+  function ncDe(folio, soloRecibidas){
+    var t=0, x;
+    for(x=0;x<NC.length;x++){
+      if(String(NC[x].folio)!==String(folio)) continue;
+      if(soloRecibidas && NC[x].estado!=='recibida') continue;
+      t+=Number(NC[x].monto)||0;
+    }
+    return Math.round(t*100)/100;
+  }
+  function pagadoDe(folio){
+    var t=0,x; for(x=0;x<PAGOS.length;x++){ if(String(PAGOS[x].folio)===String(folio)) t+=Number(PAGOS[x].monto)||0; }
+    return Math.round(t*100)/100;
+  }
+  function tieneNCFaltante(folio){
+    var x; for(x=0;x<NC.length;x++){ if(String(NC[x].folio)===String(folio) && NC[x].tipo==='faltante') return true; }
+    return false;
+  }
+  function cfg(prov){ var c=PROV[prov]||{}; return {cred:Number(c.diasCredito)||0, pct:Number(c.pctProntoPago)||0, dpp:Number(c.diasProntoPago)||0}; }
+  function estadoDe(f){
+    var c=cfg(f.proveedor), h=hoy(), fe=parseFecha(f.fecha);
+    var ncR=ncDe(f.folio,true), pg=pagadoDe(f.folio);
+    var saldo=Math.round(((f.total||0)-ncR-pg)*100)/100;
+    var pagada = f.total>0 && saldo<=0.5;
+    // ventana de pronto pago
+    var pp=null;
+    if(!pagada && c.pct>0 && c.dpp>0 && fe){
+      var limite=addDias(fe,c.dpp);
+      var dias=diasEntre(h,limite);
+      if(dias>=0) pp={dias:dias, limite:limite, monto:Math.round((f.total||0)*c.pct/100*100)/100, pct:c.pct};
+    }
+    // vencimiento
+    var venc=null, diasVenc=null;
+    if(fe && c.cred>0){ venc=addDias(fe,c.cred); diasVenc=diasEntre(h,venc); }
+    var faltanteSinNC = f.faltMonto>0 && !tieneNCFaltante(f.folio);
+    return {ncR:ncR, pagado:pg, saldo:saldo, pagada:pagada, pp:pp, venc:venc, diasVenc:diasVenc, faltanteSinNC:faltanteSinNC, sinTotal:!(f.total>0)};
+  }
+
+  // ---- render facturas ----
+  function render(){
+    if(tab==='fact') renderFact();
+    else if(tab==='nc') renderNC();
+    else if(tab==='pag') renderPagos();
+    else renderProv();
+  }
+  function renderFact(){
+    var h=hoy(), porPagar=0, ncPend=0, ppDisp=0, nFalt=0, nSinTotal=0, vencidas=0;
+    var rows=[], x;
+    for(x=0;x<FACT.length;x++){
+      var f=FACT[x], e=estadoDe(f);
+      if(!e.pagada && f.total>0) porPagar+=e.saldo;
+      if(e.faltanteSinNC){ ncPend+=f.faltMonto; nFalt++; }
+      if(e.pp) ppDisp+=e.pp.monto;
+      if(e.sinTotal) nSinTotal++;
+      if(!e.pagada && e.diasVenc!=null && e.diasVenc<0) vencidas++;
+      rows.push({f:f,e:e});
+    }
+    var cards=[
+      ['acc',money0(porPagar),'Saldo por pagar'],
+      ['dgr',money0(ncPend),'NC por reclamar (faltantes)'],
+      ['ok',money0(ppDisp),'Pronto pago disponible'],
+      ['warn',String(vencidas),'Facturas vencidas'],
+      ['',String(nSinTotal),'Sin total capturado']
+    ];
+    var s='',c;
+    for(c=0;c<cards.length;c++) s+='<div class="stat '+cards[c][0]+'"><div class="n">'+cards[c][1]+'</div><div class="l">'+cards[c][2]+'</div></div>';
+    document.getElementById('f-stats').innerHTML=s;
+
+    var list=rows.filter(function(r){
+      var f=r.f, e=r.e;
+      if(q){ if((f.folio+' '+f.proveedor).toLowerCase().indexOf(q)<0) return false; }
+      if(filtro==='pend') return !e.pagada;
+      if(filtro==='pp') return !!e.pp;
+      if(filtro==='ncf') return e.faltanteSinNC;
+      if(filtro==='pag') return e.pagada;
+      return true;
+    });
+    document.getElementById('f-count').textContent=list.length+' facturas';
+    var b='',i;
+    for(i=0;i<list.length;i++){
+      var f=list[i].f, e=list[i].e;
+      var badges='';
+      if(e.pagada) badges+='<span class="badge b-ok">Pagada</span>';
+      else if(e.pagado>0) badges+='<span class="badge b-acc">Parcial</span>';
+      else badges+='<span class="badge b-warn">Pendiente</span>';
+      if(e.diasVenc!=null && !e.pagada){
+        if(e.diasVenc<0) badges+='<span class="badge b-dgr">Vencida '+Math.abs(e.diasVenc)+'d</span>';
+        else if(e.diasVenc<=7) badges+='<span class="badge b-warn">Vence en '+e.diasVenc+'d</span>';
+      }
+      var alerts='';
+      if(e.faltanteSinNC) alerts+='<span class="alert a-nc">⚠ Faltaron '+f.faltPz+' pzas ('+money(f.faltMonto)+'). Pide la NC antes de pagar.</span>';
+      if(e.pp) alerts+='<span class="alert a-pp">💰 Paga antes del '+e.pp.limite.toLocaleDateString('es-MX',{day:'2-digit',month:'short'})+' y ganas '+money(e.pp.monto)+' ('+e.pp.pct+'%)</span>';
+      if(e.sinTotal) alerts+='<span class="alert a-nc">Falta capturar el total de la factura.</span>';
+      var totalCell = e.sinTotal
+        ? '<button class="btn btn-s btn-sm" onclick="abrirTotal(\''+f.folio+'\')">Capturar</button>'
+        : money(f.total)+'<span class="prov" onclick="abrirTotal(\''+f.folio+'\')" style="cursor:pointer;text-decoration:underline">editar</span>';
+      b+='<tr>'+
+        '<td class="l"><span class="folio">'+esc(f.folio)+'</span><span class="prov">'+esc(f.proveedor)+'</span></td>'+
+        '<td class="l">'+fmtFecha(f.fecha)+(e.venc?'<span class="prov">vence '+e.venc.toLocaleDateString('es-MX',{day:'2-digit',month:'short'})+'</span>':'')+'</td>'+
+        '<td data-l="Total">'+totalCell+'</td>'+
+        '<td data-l="NC">'+(e.ncR?money(e.ncR):'—')+'</td>'+
+        '<td data-l="Pagado">'+(e.pagado?money(e.pagado):'—')+'</td>'+
+        '<td data-l="Saldo"><b>'+(f.total>0?money(e.saldo):'—')+'</b></td>'+
+        '<td class="l">'+badges+alerts+'</td>'+
+        '<td><button class="btn btn-sm btn-s" onclick="abrirPago(\''+f.folio+'\')">Pago</button> '+
+            '<button class="btn btn-sm btn-s" onclick="abrirNC(\''+f.folio+'\')">NC</button></td>'+
+      '</tr>';
+    }
+    document.getElementById('f-tb').innerHTML = b || '<tr><td class="l" colspan="8"><div class="empty">Sin facturas para este filtro.</div></td></tr>';
+  }
+
+  function renderNC(){
+    var rec=0, esp=0, x;
+    for(x=0;x<NC.length;x++){ var m=Number(NC[x].monto)||0; if(NC[x].estado==='recibida') rec+=m; else esp+=m; }
+    document.getElementById('n-stats').innerHTML=
+      '<div class="stat ok"><div class="n">'+money0(rec)+'</div><div class="l">NC recibidas</div></div>'+
+      '<div class="stat warn"><div class="n">'+money0(esp)+'</div><div class="l">NC esperadas</div></div>'+
+      '<div class="stat"><div class="n">'+NC.length+'</div><div class="l">Total registradas</div></div>';
+    var TIPO={faltante:'Faltante',prontopago:'Pronto pago',devolucion:'Devolución',bonificacion:'Bonificación',otro:'Otro'};
+    var ord=NC.slice().sort(function(a,b){ return String(b.fecha||'').localeCompare(String(a.fecha||'')); });
+    var b='',i;
+    for(i=0;i<ord.length;i++){ var n=ord[i];
+      b+='<tr>'+
+        '<td class="l"><b>'+esc(n.folioNC||'—')+'</b></td>'+
+        '<td class="l">'+esc(n.proveedor||'')+'</td>'+
+        '<td class="l">'+esc(n.folio||'')+'</td>'+
+        '<td class="l"><span class="badge b-acc">'+(TIPO[n.tipo]||n.tipo)+'</span></td>'+
+        '<td class="l">'+fmtFecha(n.fecha)+'</td>'+
+        '<td data-l="Monto">'+money(n.monto)+'</td>'+
+        '<td class="l">'+(n.estado==='recibida'?'<span class="badge b-ok">Recibida</span>':'<span class="badge b-warn">Esperada</span>')+'</td>'+
+        '<td><button class="btn btn-sm btn-s" onclick="borrarNC(\''+n._id+'\')">Borrar</button></td>'+
+      '</tr>';
+    }
+    document.getElementById('n-count').textContent=NC.length+' notas de crédito';
+    document.getElementById('n-tb').innerHTML = b || '<tr><td class="l" colspan="8"><div class="empty">Aún no hay notas de crédito registradas.</div></td></tr>';
+  }
+
+  function renderPagos(){
+    var t=0,x; for(x=0;x<PAGOS.length;x++) t+=Number(PAGOS[x].monto)||0;
+    document.getElementById('g-stats').innerHTML=
+      '<div class="stat acc"><div class="n">'+money0(t)+'</div><div class="l">Total pagado</div></div>'+
+      '<div class="stat"><div class="n">'+PAGOS.length+'</div><div class="l">Pagos registrados</div></div>';
+    var ord=PAGOS.slice().sort(function(a,b){ return String(b.fecha||'').localeCompare(String(a.fecha||'')); });
+    var b='',i;
+    for(i=0;i<ord.length;i++){ var p=ord[i];
+      b+='<tr>'+
+        '<td class="l">'+fmtFecha(p.fecha)+'</td>'+
+        '<td class="l">'+esc(p.proveedor||'')+'</td>'+
+        '<td class="l"><b>'+esc(p.folio||'')+'</b></td>'+
+        '<td class="l">'+esc(p.referencia||'—')+'</td>'+
+        '<td data-l="Monto">'+money(p.monto)+'</td>'+
+        '<td><button class="btn btn-sm btn-s" onclick="borrarPago(\''+p._id+'\')">Borrar</button></td>'+
+      '</tr>';
+    }
+    document.getElementById('g-count').textContent=PAGOS.length+' pagos';
+    document.getElementById('g-tb').innerHTML = b || '<tr><td class="l" colspan="6"><div class="empty">Aún no hay pagos registrados.</div></td></tr>';
+  }
+
+  function renderProv(){
+    var provs={}, x;
+    for(x=0;x<FACT.length;x++){ var p=FACT[x].proveedor; if(!provs[p]) provs[p]=0; provs[p]++; }
+    var keys=Object.keys(provs).sort();
+    var b='',i;
+    for(i=0;i<keys.length;i++){ var p=keys[i], c=cfg(p);
+      b+='<tr>'+
+        '<td class="l"><b>'+esc(p)+'</b></td>'+
+        '<td data-l="Días crédito">'+(c.cred||'—')+'</td>'+
+        '<td data-l="Pronto pago %">'+(c.pct?c.pct+'%':'—')+'</td>'+
+        '<td data-l="Días p/PP">'+(c.dpp||'—')+'</td>'+
+        '<td data-l="Facturas">'+provs[p]+'</td>'+
+        '<td><button class="btn btn-sm btn-s" onclick="abrirProv(\''+p.replace(/'/g,"\\'")+'\')">Configurar</button></td>'+
+      '</tr>';
+    }
+    document.getElementById('v-tb').innerHTML=b||'<tr><td class="l" colspan="6"><div class="empty">Sin proveedores.</div></td></tr>';
+  }
+
+  // ---- modales ----
+  function opts(sel){
+    var s='', i;
+    for(i=0;i<FACT.length;i++){ var f=FACT[i];
+      s+='<option value="'+esc(f.folio)+'"'+(String(sel)===String(f.folio)?' selected':'')+'>'+esc(f.folio)+' · '+esc(f.proveedor.slice(0,28))+' · '+fmtFecha(f.fecha)+'</option>';
+    }
+    return s;
+  }
+  function factDe(folio){ var i; for(i=0;i<FACT.length;i++){ if(String(FACT[i].folio)===String(folio)) return FACT[i]; } return null; }
+  function hoyISO(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+  window.verTab=function(t){
+    tab=t;
+    ['fact','nc','pag','prov'].forEach(function(k){
+      document.getElementById('t-'+k).className='tab'+(k===t?' on':'');
+      document.getElementById('p-'+k).style.display=(k===t)?'block':'none';
+    });
+    render();
+  };
+  window.cerrarModal=function(id){ document.getElementById(id).classList.remove('on'); };
+
+  window.abrirPago=function(folio){
+    document.getElementById('mp-folio').innerHTML=opts(folio);
+    document.getElementById('mp-fecha').value=hoyISO();
+    document.getElementById('mp-ref').value=''; document.getElementById('mp-nota').value='';
+    document.getElementById('mp-status').textContent='';
+    sugPago();
+    document.getElementById('mp-folio').onchange=sugPago;
+    document.getElementById('m-pago').classList.add('on');
+  };
+  function sugPago(){
+    var folio=document.getElementById('mp-folio').value, f=factDe(folio);
+    var box=document.getElementById('mp-sug'), inp=document.getElementById('mp-monto');
+    if(!f){ box.innerHTML=''; return; }
+    var e=estadoDe(f), s='';
+    if(e.sinTotal){ s+='<div class="sug">Esta factura no tiene total capturado. Captúralo primero para calcular el saldo.</div>'; inp.value=''; }
+    else {
+      inp.value=e.saldo.toFixed(2);
+      s+='<div class="lineitem"><span>Total factura</span><b>'+money(f.total)+'</b></div>';
+      if(e.ncR>0) s+='<div class="lineitem"><span>− NC recibidas</span><b>'+money(e.ncR)+'</b></div>';
+      if(e.pagado>0) s+='<div class="lineitem"><span>− Ya pagado</span><b>'+money(e.pagado)+'</b></div>';
+      s+='<div class="lineitem"><span><b>Saldo</b></span><b>'+money(e.saldo)+'</b></div>';
+      if(e.faltanteSinNC) s+='<div class="sug">⚠ Faltaron '+f.faltPz+' pzas ('+money(f.faltMonto)+') y no hay NC registrada. Considera pedir la nota de crédito antes de pagar completo.</div>';
+      if(e.pp) s+='<div class="sug">💰 Si pagas antes del '+e.pp.limite.toLocaleDateString('es-MX',{day:'2-digit',month:'short'})+' ganas '+money(e.pp.monto)+' ('+e.pp.pct+'% de pronto pago).</div>';
+    }
+    box.innerHTML=s;
+  }
+  window.guardarPago=async function(){
+    var folio=document.getElementById('mp-folio').value;
+    var f=factDe(folio); if(!f) return;
+    var monto=parseFloat(document.getElementById('mp-monto').value);
+    var fecha=document.getElementById('mp-fecha').value;
+    var st=document.getElementById('mp-status');
+    if(!(monto>0)){ st.textContent='Captura un monto válido.'; return; }
+    if(!fecha){ st.textContent='Captura la fecha del pago.'; return; }
+    st.textContent='Guardando…';
+    try{
+      var ref=await fs.addDoc(fs.collection(db,'pagos'), {
+        folio:folio, proveedor:f.proveedor, monto:Math.round(monto*100)/100, fecha:fecha,
+        referencia:document.getElementById('mp-ref').value.trim(),
+        nota:document.getElementById('mp-nota').value.trim(), ts:Date.now()
+      });
+      PAGOS.push({_id:ref.id, folio:folio, proveedor:f.proveedor, monto:Math.round(monto*100)/100, fecha:fecha,
+        referencia:document.getElementById('mp-ref').value.trim(), ts:Date.now()});
+      cerrarModal('m-pago'); render();
+    }catch(e){ st.textContent='Error: '+e.message; }
+  };
+  window.borrarPago=async function(id){
+    if(!confirm('¿Borrar este pago?')) return;
+    try{ await fs.deleteDoc(fs.doc(db,'pagos',id)); PAGOS=PAGOS.filter(function(p){return p._id!==id;}); render(); }
+    catch(e){ alert('Error: '+e.message); }
+  };
+
+  window.abrirNC=function(folio){
+    document.getElementById('mn-folio').innerHTML=opts(folio);
+    document.getElementById('mn-fecha').value=hoyISO();
+    document.getElementById('mn-folionc').value=''; document.getElementById('mn-nota').value='';
+    document.getElementById('mn-status').textContent='';
+    sugNC();
+    document.getElementById('mn-folio').onchange=sugNC;
+    document.getElementById('mn-tipo').onchange=sugNC;
+    document.getElementById('m-nc').classList.add('on');
+  };
+  function sugNC(){
+    var folio=document.getElementById('mn-folio').value, f=factDe(folio);
+    var tipo=document.getElementById('mn-tipo').value;
+    var box=document.getElementById('mn-sug'), inp=document.getElementById('mn-monto');
+    if(!f){ box.innerHTML=''; return; }
+    var e=estadoDe(f), s='';
+    if(tipo==='faltante'){
+      if(f.faltMonto>0){
+        inp.value=f.faltMonto.toFixed(2);
+        s+='<div class="sug">Faltaron <b>'+f.faltPz+' piezas</b> valorizadas en <b>'+money(f.faltMonto)+'</b> (sin IVA). Este es el monto sugerido.</div>';
+        var d='',i;
+        for(i=0;i<f.faltDet.length && i<6;i++){ var x=f.faltDet[i];
+          d+='<div class="lineitem"><span>'+esc(x.clave)+' '+esc(String(x.desc).slice(0,26))+'</span><span>'+x.falta+' × '+money(x.costo)+'</span></div>'; }
+        s+=d;
+      } else { s+='<div class="sug">Esta factura no tiene faltantes registrados.</div>'; }
+    } else if(tipo==='prontopago'){
+      var c=cfg(f.proveedor);
+      if(c.pct>0 && f.total>0){
+        var m=Math.round(f.total*c.pct/100*100)/100;
+        inp.value=m.toFixed(2);
+        s+='<div class="sug">Pronto pago de '+c.pct+'% sobre '+money(f.total)+' = <b>'+money(m)+'</b>.</div>';
+      } else {
+        s+='<div class="sug">Configura el % de pronto pago de este proveedor en la pestaña Proveedores para calcularlo solo.</div>';
+      }
+    } else { inp.value=''; }
+    box.innerHTML=s;
+  }
+  window.guardarNC=async function(){
+    var folio=document.getElementById('mn-folio').value, f=factDe(folio); if(!f) return;
+    var monto=parseFloat(document.getElementById('mn-monto').value);
+    var st=document.getElementById('mn-status');
+    if(!(monto>0)){ st.textContent='Captura un monto válido.'; return; }
+    st.textContent='Guardando…';
+    var reg={ folio:folio, proveedor:f.proveedor, tipo:document.getElementById('mn-tipo').value,
+      folioNC:document.getElementById('mn-folionc').value.trim(), monto:Math.round(monto*100)/100,
+      fecha:document.getElementById('mn-fecha').value, estado:document.getElementById('mn-estado').value,
+      nota:document.getElementById('mn-nota').value.trim(), ts:Date.now() };
+    try{
+      var ref=await fs.addDoc(fs.collection(db,'notasCredito'), reg);
+      reg._id=ref.id; NC.push(reg);
+      cerrarModal('m-nc'); render();
+    }catch(e){ st.textContent='Error: '+e.message; }
+  };
+  window.borrarNC=async function(id){
+    if(!confirm('¿Borrar esta nota de crédito?')) return;
+    try{ await fs.deleteDoc(fs.doc(db,'notasCredito',id)); NC=NC.filter(function(n){return n._id!==id;}); render(); }
+    catch(e){ alert('Error: '+e.message); }
+  };
+
+  window.abrirProv=function(p){
+    editProv=p;
+    var c=cfg(p);
+    document.getElementById('mv-title').textContent=p;
+    document.getElementById('mv-cred').value=c.cred||'';
+    document.getElementById('mv-pct').value=c.pct||'';
+    document.getElementById('mv-dpp').value=c.dpp||'';
+    document.getElementById('mv-status').textContent='';
+    document.getElementById('m-prov').classList.add('on');
+  };
+  window.guardarProv=async function(){
+    if(!editProv) return;
+    var st=document.getElementById('mv-status'); st.textContent='Guardando…';
+    var reg={ nombre:editProv,
+      diasCredito:parseInt(document.getElementById('mv-cred').value)||0,
+      pctProntoPago:parseFloat(document.getElementById('mv-pct').value)||0,
+      diasProntoPago:parseInt(document.getElementById('mv-dpp').value)||0 };
+    try{
+      await fs.setDoc(fs.doc(db,'proveedoresCfg',editProv), reg);
+      PROV[editProv]=reg;
+      cerrarModal('m-prov'); render();
+    }catch(e){ st.textContent='Error: '+e.message; }
+  };
+
+  window.abrirTotal=function(folio){
+    editTotalFolio=folio;
+    var f=factDe(folio); if(!f) return;
+    document.getElementById('mt-info').textContent=f.folio+' · '+f.proveedor;
+    document.getElementById('mt-monto').value=f.total>0?f.total.toFixed(2):'';
+    var est=Math.round(f.mercancia*1.16*100)/100;
+    document.getElementById('mt-sug').innerHTML=
+      '<div class="lineitem"><span>Mercancía (según el PDF)</span><b>'+money(f.mercancia)+'</b></div>'+
+      '<div class="sug">Estimado con IVA 16%: <b>'+money(est)+'</b>. Verifícalo contra la factura — puede variar por descuentos o productos a tasa 0%.</div>';
+    document.getElementById('mt-status').textContent='';
+    document.getElementById('m-total').classList.add('on');
+  };
+  window.guardarTotal=async function(){
+    var monto=parseFloat(document.getElementById('mt-monto').value);
+    var st=document.getElementById('mt-status');
+    if(!(monto>0)){ st.textContent='Captura un total válido.'; return; }
+    st.textContent='Guardando…';
+    try{
+      await fs.setDoc(fs.doc(db,'facturasTotal',editTotalFolio), {total:Math.round(monto*100)/100, ts:Date.now()});
+      var f=factDe(editTotalFolio); if(f){ f.totalManual=Math.round(monto*100)/100; f.total=f.totalManual; }
+      cerrarModal('m-total'); render();
+    }catch(e){ st.textContent='Error: '+e.message; }
+  };
+
+  document.addEventListener('DOMContentLoaded', async function(){
+    var qi=document.getElementById('f-q');
+    if(qi) qi.addEventListener('input', function(e){ q=e.target.value.trim().toLowerCase(); render(); });
+    var ch=document.getElementById('f-chips');
+    if(ch) ch.addEventListener('click', function(e){
+      var c=e.target.closest('.chip'); if(!c) return;
+      var all=document.querySelectorAll('#f-chips .chip');
+      for(var i=0;i<all.length;i++) all[i].classList.remove('on');
+      c.classList.add('on'); filtro=c.getAttribute('data-f'); render();
+    });
+    document.querySelectorAll('.modal').forEach(function(m){
+      m.addEventListener('click', function(e){ if(e.target===m) m.classList.remove('on'); });
+    });
+    try{ await conectar(); await cargar(); }
+    catch(e){ document.getElementById('loading').textContent='Error al cargar: '+e.message; }
+  });
+})();
+
+</script>
+</body>
+</html>
