@@ -423,8 +423,23 @@
     var r={};
     var m=t.match(/empresa a pagar\s*:?\s*([A-ZÁÉÍÓÚÑ0-9 .,&-]+?)\s{2,}/i) || t.match(/empresa a pagar\s*:?\s*(.+?)\s+N[úu]mero/i);
     if(m) r.empresa=m[1].trim();
-    m=t.match(/Importe\s*M\.?\s*N\.?\s*:?\s*\$?\s*([\d,]+\.\d{2})/i) || t.match(/Importe\s*:?\s*\$\s*([\d,]+\.\d{2})/i);
+    // El monto: en el comprobante BBVA la etiqueta y el valor suelen ir SEPARADOS
+    // en el orden interno del PDF, asi que no se puede confiar en la adyacencia.
+    m=t.match(/Importe\s*M\.?\s*N\.?\s*:?\s*\$\s*([\d,]+\.\d{2})/i);
     if(m) r.monto=num(m[1]);
+    else {
+      // Fallback: tomar los montos precedidos por $ (en estos comprobantes el importe
+      // es el unico con signo de pesos). Si hubiera varios, se toma el mayor.
+      var todos=t.match(/\$\s*[\d,]+\.\d{2}/g);
+      if(todos && todos.length){
+        var mx=0, i2;
+        for(i2=0;i2<todos.length;i2++){
+          var v=num(todos[i2].replace(/[$\s]/g,''));
+          if(v>mx) mx=v;
+        }
+        if(mx>0) r.monto=mx;
+      }
+    }
     m=t.match(/Fecha de operaci[oó]n\s*:?\s*(\d{2})\/(\d{2})\/(\d{4})/i);
     if(m) r.fecha=m[3]+'-'+m[2]+'-'+m[1];
     m=t.match(/Referencia\s*:?\s*([A-Za-z0-9-]+)/i);
@@ -435,12 +450,30 @@
   }
   // Nota de crédito (CFDI de proveedor)
   function leerNC(t){
+    // OJO: en estos CFDI el valor suele ir ANTES de su etiqueta ("03.07.2026F. Factura :"),
+    // asi que cada dato se busca en los dos ordenes posibles.
     var r={};
-    var m=t.match(/Nota de cr[eé]dito\s+([A-Z]{0,4}[\d-]{4,})/i) || t.match(/\b(NC\d{6,})\b/i);
-    if(m) r.folioNC=m[1].trim();
-    m=t.match(/F\.\s*Factura\s*:?\s*(\d{2})[.\/-](\d{2})[.\/-](\d{4})/i);
+    // Folio de la NC: "NC 9601399988" (evitar confundirlo con el lugar de expedicion)
+    var m=t.match(/\bNC\s*[-]?\s*(\d{6,})\b/i);
+    if(m) r.folioNC='NC'+m[1];
+    else {
+      m=t.match(/Nota de cr[eé]dito\s+([A-Z]{2,4}[\d-]{4,})/i);
+      if(m) r.folioNC=m[1].trim();
+    }
+    // Fecha de la factura (NO la de vencimiento).
+    // Se busca PRIMERO el valor-antes-de-etiqueta: en estos CFDI el texto queda
+    // "03.07.2026F. Factura : 02.08.2026F. Vto." — si se lee al reves se toma el vencimiento.
+    m=t.match(/(\d{2})[.\/-](\d{2})[.\/-](\d{4})\s*F\.\s*Factura/i);
+    if(!m){
+      var mf=t.match(/F\.\s*Factura\s*:?\s*(\d{2})[.\/-](\d{2})[.\/-](\d{4})/i);
+      var mv=t.match(/F\.\s*Vto\.?\s*:?\s*(\d{2})[.\/-](\d{2})[.\/-](\d{4})/i);
+      // si lo que sigue a "F. Factura" es en realidad el vencimiento, se descarta
+      if(mf && !(mv && mf[1]===mv[1] && mf[2]===mv[2] && mf[3]===mv[3])) m=mf;
+    }
     if(m) r.fecha=m[3]+'-'+m[2]+'-'+m[1];
-    m=t.match(/TOTAL\s*\(MXN\)\s*([\d,]+\.\d{2})/i) || t.match(/TOTAL\s*\(?MXN\)?\s*:?\s*\$?\s*([\d,]+\.\d{2})/i);
+    // Total
+    m=t.match(/TOTAL\s*\(MXN\)\s*\$?\s*([\d,]+\.\d{2})/i)
+      || t.match(/([\d,]+\.\d{2})\s*TOTAL\s*\(MXN\)/i);
     if(m) r.total=num(m[1]);
     if(/PRONTO\s*PAGO/i.test(t)) r.tipo='prontopago';
     else if(/DEVOLUCI[OÓ]N/i.test(t)) r.tipo='devolucion';
