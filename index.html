@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pagos y Notas de Crédito · Bellíssima</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   :root{--bg:#faf7fb;--surface:#fff;--surface2:#f6f1f8;--muted:#7a7285;--line:#ece6f0;--brand:#6b21a8;
         --ok:#16a34a;--ok-bg:#f0fdf4;--warn:#d97706;--warn-bg:#fffbeb;--danger:#dc2626;--danger-bg:#fef2f2;--r:12px}
@@ -62,6 +63,11 @@
   .status{font-size:13px;color:var(--brand);min-height:18px;margin-top:8px}
   .sug{background:var(--warn-bg);border:1px solid #f4e2c0;color:#92620a;border-radius:8px;padding:8px 10px;font-size:12px;margin-top:8px}
   .empty{padding:34px;text-align:center;color:var(--muted)}
+  .drop{border:1px dashed var(--line);border-radius:10px;padding:12px;background:var(--surface2);text-align:center}
+  .drop input[type=file]{font-size:12.5px;width:100%}
+  .drop .hint{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .clip{background:none;border:none;cursor:pointer;font-size:15px;padding:2px 4px}
+  .leyendo{font-size:12px;color:var(--brand);margin-top:6px}
   .lineitem{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px}
   @media(max-width:860px){
     thead{display:none} table,tbody,tr,td{display:block;width:100%}
@@ -117,7 +123,7 @@
       <div class="muted" id="n-count" style="margin:12px 0 6px"></div>
       <div class="tablewrap">
         <table><thead><tr>
-          <th class="l">Folio NC</th><th class="l">Proveedor</th><th class="l">Factura</th><th class="l">Tipo</th><th class="l">Fecha</th><th>Monto</th><th class="l">Estado</th><th></th>
+          <th class="l">Folio NC</th><th class="l">Proveedor</th><th class="l">Factura</th><th class="l">Tipo</th><th class="l">Fecha</th><th>Monto</th><th class="l">Estado</th><th>PDF</th><th></th>
         </tr></thead><tbody id="n-tb"></tbody></table>
       </div>
     </div>
@@ -129,7 +135,7 @@
       <div class="muted" id="g-count" style="margin:12px 0 6px"></div>
       <div class="tablewrap">
         <table><thead><tr>
-          <th class="l">Fecha</th><th class="l">Proveedor</th><th class="l">Factura</th><th class="l">Referencia</th><th>Monto</th><th></th>
+          <th class="l">Fecha</th><th class="l">Proveedor</th><th class="l">Factura</th><th class="l">Referencia</th><th>Monto</th><th>PDF</th><th></th>
         </tr></thead><tbody id="g-tb"></tbody></table>
       </div>
     </div>
@@ -156,6 +162,11 @@
     <div class="fld"><label>Monto</label><input id="mp-monto" type="number" step="0.01" placeholder="0.00"></div>
   </div>
   <div class="fld"><label>Referencia / folio de transferencia</label><input id="mp-ref" type="text" placeholder="ej. SPEI 1234567"></div>
+  <div class="fld"><label>Comprobante de la transferencia (PDF)</label>
+    <div class="drop"><input id="mp-file" type="file" accept="application/pdf">
+      <div class="hint">Lo leo y lleno monto, fecha y referencia solos.</div></div>
+    <div id="mp-leyendo" class="leyendo"></div>
+  </div>
   <div class="fld"><label>Notas (opcional)</label><textarea id="mp-nota"></textarea></div>
   <div id="mp-sug"></div>
   <div class="status" id="mp-status"></div>
@@ -187,6 +198,11 @@
       <option value="esperada">Esperada (aún no la mandan)</option>
       <option value="recibida">Recibida</option>
     </select></div>
+  </div>
+  <div class="fld"><label>Nota de crédito (PDF del CFDI)</label>
+    <div class="drop"><input id="mn-file" type="file" accept="application/pdf">
+      <div class="hint">La leo y lleno folio, monto, fecha y tipo solos.</div></div>
+    <div id="mn-leyendo" class="leyendo"></div>
   </div>
   <div class="fld"><label>Notas (opcional)</label><textarea id="mn-nota"></textarea></div>
   <div id="mn-sug"></div>
@@ -348,6 +364,94 @@
     render();
   }
 
+  // ---- PDF: lectura y extracción ----
+  var pendPago={data:null, nombre:null}, pendNC={data:null, nombre:null};
+
+  async function textoPDF(file){
+    var buf=await file.arrayBuffer();
+    if(window.pdfjsLib && pdfjsLib.GlobalWorkerOptions)
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    var pdf=await pdfjsLib.getDocument({data:new Uint8Array(buf.slice(0))}).promise;
+    var txt='', p, pg, c, i;
+    for(p=1;p<=pdf.numPages;p++){
+      pg=await pdf.getPage(p);
+      c=await pg.getTextContent();
+      for(i=0;i<c.items.length;i++) txt += c.items[i].str + ' ';
+      txt += '\n';
+    }
+    return txt;
+  }
+  function b64(file){
+    return new Promise(function(res,rej){
+      var fr=new FileReader();
+      fr.onload=function(){ var s=String(fr.result); var k=s.indexOf(','); res(s.slice(k+1)); };
+      fr.onerror=function(){ rej(new Error('No se pudo leer el archivo')); };
+      fr.readAsDataURL(file);
+    });
+  }
+  var CH=700000;
+  async function guardarAdjunto(data, nombre){
+    if(!data) return null;
+    var n=Math.ceil(data.length/CH), i;
+    var ref=await fs.addDoc(fs.collection(db,'adjuntos'), {nombre:nombre||'documento.pdf', nChunks:n, ts:Date.now()});
+    for(i=0;i<n;i++){
+      await fs.setDoc(fs.doc(db,'adjuntos',ref.id,'chunks',String(i)), {d:data.slice(i*CH,(i+1)*CH)});
+    }
+    return ref.id;
+  }
+  window.verAdjunto=async function(id){
+    try{
+      var meta=await fs.getDoc(fs.doc(db,'adjuntos',id));
+      if(!meta.exists()){ alert('No encontré el documento.'); return; }
+      var m=meta.data(), s='', i, d;
+      for(i=0;i<m.nChunks;i++){
+        d=await fs.getDoc(fs.doc(db,'adjuntos',id,'chunks',String(i)));
+        if(d.exists()) s+=d.data().d;
+      }
+      var bin=atob(s), arr=new Uint8Array(bin.length), k;
+      for(k=0;k<bin.length;k++) arr[k]=bin.charCodeAt(k);
+      var url=URL.createObjectURL(new Blob([arr],{type:'application/pdf'}));
+      window.open(url,'_blank');
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+    }catch(e){ alert('Error al abrir: '+e.message); }
+  };
+  function num(s){ return parseFloat(String(s).replace(/,/g,'')); }
+  function isoDe(d,m,a){ return a+'-'+String(d.length===2?m:m).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
+
+  // Comprobante BBVA de transferencia / pago de servicios
+  function leerComprobante(t){
+    var r={};
+    var m=t.match(/empresa a pagar\s*:?\s*([A-ZÁÉÍÓÚÑ0-9 .,&-]+?)\s{2,}/i) || t.match(/empresa a pagar\s*:?\s*(.+?)\s+N[úu]mero/i);
+    if(m) r.empresa=m[1].trim();
+    m=t.match(/Importe\s*M\.?\s*N\.?\s*:?\s*\$?\s*([\d,]+\.\d{2})/i) || t.match(/Importe\s*:?\s*\$\s*([\d,]+\.\d{2})/i);
+    if(m) r.monto=num(m[1]);
+    m=t.match(/Fecha de operaci[oó]n\s*:?\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+    if(m) r.fecha=m[3]+'-'+m[2]+'-'+m[1];
+    m=t.match(/Referencia\s*:?\s*([A-Za-z0-9-]+)/i);
+    if(m) r.ref=m[1].trim();
+    m=t.match(/Folio de Internet\s*:?\s*(\d+)/i);
+    if(m) r.folioInt=m[1];
+    return r;
+  }
+  // Nota de crédito (CFDI de proveedor)
+  function leerNC(t){
+    var r={};
+    var m=t.match(/Nota de cr[eé]dito\s+([A-Z]{0,4}[\d-]{4,})/i) || t.match(/\b(NC\d{6,})\b/i);
+    if(m) r.folioNC=m[1].trim();
+    m=t.match(/F\.\s*Factura\s*:?\s*(\d{2})[.\/-](\d{2})[.\/-](\d{4})/i);
+    if(m) r.fecha=m[3]+'-'+m[2]+'-'+m[1];
+    m=t.match(/TOTAL\s*\(MXN\)\s*([\d,]+\.\d{2})/i) || t.match(/TOTAL\s*\(?MXN\)?\s*:?\s*\$?\s*([\d,]+\.\d{2})/i);
+    if(m) r.total=num(m[1]);
+    if(/PRONTO\s*PAGO/i.test(t)) r.tipo='prontopago';
+    else if(/DEVOLUCI[OÓ]N/i.test(t)) r.tipo='devolucion';
+    else if(/BONIFICACI[OÓ]N/i.test(t)) r.tipo='bonificacion';
+    m=t.match(/COND\.?\s*PAGO\s*:?\s*([\d.]+)\s*%/i);
+    if(m) r.pctCond=parseFloat(m[1]);
+    m=t.match(/UUID\s*:?\s*([A-F0-9-]{30,})/i);
+    if(m) r.uuid=m[1];
+    return r;
+  }
+
   // ---- cálculos por factura ----
   function ncDe(folio, soloRecibidas){
     var t=0, x;
@@ -478,6 +582,7 @@
         '<td class="l">'+fmtFecha(n.fecha)+'</td>'+
         '<td data-l="Monto">'+money(n.monto)+'</td>'+
         '<td class="l">'+(n.estado==='recibida'?'<span class="badge b-ok">Recibida</span>':'<span class="badge b-warn">Esperada</span>')+'</td>'+
+        '<td>'+(n.adjunto?'<button class="clip" title="Ver PDF" onclick="verAdjunto(\''+n.adjunto+'\')">📎</button>':'—')+'</td>'+
         '<td><button class="btn btn-sm btn-s" onclick="borrarNC(\''+n._id+'\')">Borrar</button></td>'+
       '</tr>';
     }
@@ -499,6 +604,7 @@
         '<td class="l"><b>'+esc(p.folio||'')+'</b></td>'+
         '<td class="l">'+esc(p.referencia||'—')+'</td>'+
         '<td data-l="Monto">'+money(p.monto)+'</td>'+
+        '<td>'+(p.adjunto?'<button class="clip" title="Ver comprobante" onclick="verAdjunto(\''+p.adjunto+'\')">📎</button>':'—')+'</td>'+
         '<td><button class="btn btn-sm btn-s" onclick="borrarPago(\''+p._id+'\')">Borrar</button></td>'+
       '</tr>';
     }
@@ -550,8 +656,35 @@
     document.getElementById('mp-fecha').value=hoyISO();
     document.getElementById('mp-ref').value=''; document.getElementById('mp-nota').value='';
     document.getElementById('mp-status').textContent='';
+    document.getElementById('mp-leyendo').textContent='';
+    var fi=document.getElementById('mp-file'); fi.value='';
+    pendPago={data:null, nombre:null};
     sugPago();
     document.getElementById('mp-folio').onchange=sugPago;
+    fi.onchange=async function(){
+      var f=fi.files[0]; if(!f) return;
+      var av=document.getElementById('mp-leyendo');
+      av.textContent='Leyendo el comprobante…';
+      try{
+        var t=await textoPDF(f);
+        var d=leerComprobante(t);
+        pendPago={data:await b64(f), nombre:f.name};
+        if(d.monto>0) document.getElementById('mp-monto').value=d.monto.toFixed(2);
+        if(d.fecha) document.getElementById('mp-fecha').value=d.fecha;
+        if(d.ref) document.getElementById('mp-ref').value=d.ref + (d.folioInt?(' · folio '+d.folioInt):'');
+        var partes=[];
+        if(d.empresa) partes.push(d.empresa);
+        if(d.monto>0) partes.push(money(d.monto));
+        if(d.fecha) partes.push(fmtFecha(d.fecha));
+        av.textContent = partes.length ? ('✓ Leí: '+partes.join(' · ')) : '✓ PDF adjuntado (no pude leer los datos, captúralos a mano).';
+        // aviso si el proveedor del comprobante no coincide con el de la factura
+        var f2=factDe(document.getElementById('mp-folio').value);
+        if(d.empresa && f2){
+          var a=d.empresa.toUpperCase().slice(0,6), b=String(f2.proveedor).toUpperCase().slice(0,6);
+          if(a!==b) av.textContent += ' — ⚠ Ojo: el comprobante dice "'+d.empresa+'" y la factura es de "'+f2.proveedor+'".';
+        }
+      }catch(e){ av.textContent='No pude leer el PDF: '+e.message; }
+    };
     document.getElementById('m-pago').classList.add('on');
   };
   function sugPago(){
@@ -581,13 +714,15 @@
     if(!fecha){ st.textContent='Captura la fecha del pago.'; return; }
     st.textContent='Guardando…';
     try{
-      var ref=await fs.addDoc(fs.collection(db,'pagos'), {
-        folio:folio, proveedor:f.proveedor, monto:Math.round(monto*100)/100, fecha:fecha,
+      var adj=null;
+      if(pendPago.data){ st.textContent='Subiendo comprobante…'; adj=await guardarAdjunto(pendPago.data, pendPago.nombre); }
+      st.textContent='Guardando…';
+      var reg={ folio:folio, proveedor:f.proveedor, monto:Math.round(monto*100)/100, fecha:fecha,
         referencia:document.getElementById('mp-ref').value.trim(),
-        nota:document.getElementById('mp-nota').value.trim(), ts:Date.now()
-      });
-      PAGOS.push({_id:ref.id, folio:folio, proveedor:f.proveedor, monto:Math.round(monto*100)/100, fecha:fecha,
-        referencia:document.getElementById('mp-ref').value.trim(), ts:Date.now()});
+        nota:document.getElementById('mp-nota').value.trim(), adjunto:adj, ts:Date.now() };
+      var ref=await fs.addDoc(fs.collection(db,'pagos'), reg);
+      reg._id=ref.id; PAGOS.push(reg);
+      pendPago={data:null,nombre:null};
       cerrarModal('m-pago'); render();
     }catch(e){ st.textContent='Error: '+e.message; }
   };
@@ -602,9 +737,40 @@
     document.getElementById('mn-fecha').value=hoyISO();
     document.getElementById('mn-folionc').value=''; document.getElementById('mn-nota').value='';
     document.getElementById('mn-status').textContent='';
+    document.getElementById('mn-leyendo').textContent='';
+    var fi=document.getElementById('mn-file'); fi.value='';
+    pendNC={data:null, nombre:null};
     sugNC();
     document.getElementById('mn-folio').onchange=sugNC;
     document.getElementById('mn-tipo').onchange=sugNC;
+    fi.onchange=async function(){
+      var f=fi.files[0]; if(!f) return;
+      var av=document.getElementById('mn-leyendo');
+      av.textContent='Leyendo la nota de crédito…';
+      try{
+        var t=await textoPDF(f);
+        var d=leerNC(t);
+        pendNC={data:await b64(f), nombre:f.name};
+        if(d.folioNC) document.getElementById('mn-folionc').value=d.folioNC;
+        if(d.fecha) document.getElementById('mn-fecha').value=d.fecha;
+        if(d.total>0) document.getElementById('mn-monto').value=d.total.toFixed(2);
+        if(d.tipo) document.getElementById('mn-tipo').value=d.tipo;
+        document.getElementById('mn-estado').value='recibida';
+        var partes=[];
+        if(d.folioNC) partes.push(d.folioNC);
+        if(d.total>0) partes.push(money(d.total));
+        if(d.tipo) partes.push(d.tipo==='prontopago'?'pronto pago':d.tipo);
+        av.textContent = partes.length ? ('✓ Leí: '+partes.join(' · ')) : '✓ PDF adjuntado (captura los datos a mano).';
+        if(d.pctCond>0){
+          var fa=factDe(document.getElementById('mn-folio').value);
+          if(fa){
+            var c=cfg(fa.proveedor);
+            if(!c.pct) av.textContent += ' — 💡 La NC dice ' + d.pctCond + '% de pronto pago. Configúralo en Proveedores para que te avise a futuro.';
+          }
+        }
+        sugNC();
+      }catch(e){ av.textContent='No pude leer el PDF: '+e.message; }
+    };
     document.getElementById('m-nc').classList.add('on');
   };
   function sugNC(){
@@ -645,8 +811,11 @@
       fecha:document.getElementById('mn-fecha').value, estado:document.getElementById('mn-estado').value,
       nota:document.getElementById('mn-nota').value.trim(), ts:Date.now() };
     try{
+      if(pendNC.data){ st.textContent='Subiendo la NC…'; reg.adjunto=await guardarAdjunto(pendNC.data, pendNC.nombre); }
+      st.textContent='Guardando…';
       var ref=await fs.addDoc(fs.collection(db,'notasCredito'), reg);
       reg._id=ref.id; NC.push(reg);
+      pendNC={data:null,nombre:null};
       cerrarModal('m-nc'); render();
     }catch(e){ st.textContent='Error: '+e.message; }
   };
