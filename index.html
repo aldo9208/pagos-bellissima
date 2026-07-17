@@ -302,47 +302,27 @@
       });
     });
 
-    // 2) faltantes NETOS por factura.
-    // Una compra se reparte entre sucursales: un faltante en una y un sobrante en otra
-    // = error de distribucion interna, NO es responsabilidad del proveedor.
-    // Por eso neteamos esperado vs recibido por producto a traves de TODAS las sucursales.
-    lo.textContent='Calculando faltantes…';
-    var recSnap=await fs.getDocs(fs.collection(db,'recepciones'));
-    var acum={}; // folio -> clave -> {esp, rec, desc}
-    recSnap.forEach(function(d){
-      var r=d.data(); var fol=String(r.folio||'');
-      if(!/^E/i.test(fol)) return; // solo compras a proveedor (no traspasos)
-      (r.items||[]).forEach(function(i){
-        var cl = String(i.numart || i.clave || '').trim();
-        if(!cl) return;
-        var esp = (i.esperado!=null)?i.esperado:(i.cant||0);
-        var rec = i.recibido||0;
-        if(!acum[fol]) acum[fol]={};
-        if(!acum[fol][cl]) acum[fol][cl]={esp:0, rec:0, desc:(i.desc||i.descripcion||'')};
-        acum[fol][cl].esp += esp;
-        acum[fol][cl].rec += rec;
-      });
-    });
-    var faltPorFolio={};
-    Object.keys(acum).forEach(function(fol){
-      var pz=0, monto=0, det=[], internos=0;
-      Object.keys(acum[fol]).forEach(function(cl){
-        var a=acum[fol][cl];
-        var neto=a.esp-a.rec;
-        if(neto>0){
-          var c = costos[nk(cl)] || 0;
-          pz+=neto; monto+=neto*c;
-          det.push({clave:cl, desc:a.desc, falta:neto, costo:c});
-        } else if(neto<0){ internos++; }
-      });
-      det.sort(function(x,y){ return (y.falta*y.costo)-(x.falta*x.costo); });
-      if(pz>0) faltPorFolio[fol]={pz:pz, monto:monto, det:det};
-    });
+    // 2) Faltante del PROVEEDOR desde la revisión de CEDIS (colección recibosProveedor).
+    // Es el faltante real facturado-vs-recibido físico en el CEDIS, NO el reparto interno.
+    lo.textContent='Cargando revisiones de CEDIS…';
+    var recibos={};
+    try{ var rp=await fs.getDocs(fs.collection(db,'recibosProveedor')); rp.forEach(function(d){ recibos[d.id]=d.data(); }); }catch(e){}
     facturas.forEach(function(f){
-      var x=faltPorFolio[f.folio];
-      f.faltPz = x?x.pz:0;
-      f.faltMonto = x?Math.round(x.monto*100)/100:0;
-      f.faltDet = x?x.det:[];
+      var r=recibos[f.folio];
+      if(r){
+        f.revisadoCEDIS=true;
+        var pz=0, det=[];
+        (r.items||[]).forEach(function(it){
+          var fa=Number(it.faltante)||0;
+          if(fa>0){ pz+=fa; det.push({clave:it.clave, desc:it.desc||'', falta:fa, costo:Number(it.costo)||0}); }
+        });
+        det.sort(function(x,y){ return (y.falta*y.costo)-(x.falta*x.costo); });
+        f.faltPz=pz;
+        f.faltMonto=Math.round((Number(r.totalFaltante)||0)*100)/100;
+        f.faltDet=det;
+      } else {
+        f.revisadoCEDIS=false; f.faltPz=0; f.faltMonto=0; f.faltDet=[];
+      }
     });
 
     // 3) totales capturados a mano, NC, pagos, proveedores
@@ -578,6 +558,7 @@
       if(e.faltanteSinNC) alerts+='<span class="alert a-nc">⚠ Faltaron '+f.faltPz+' pzas ('+money(f.faltMonto)+'). Pide la NC antes de pagar.</span>';
       if(e.pp) alerts+='<span class="alert a-pp">💰 Paga antes del '+e.pp.limite.toLocaleDateString('es-MX',{day:'2-digit',month:'short'})+' y ganas '+money(e.pp.monto)+' ('+e.pp.pct+'%)</span>';
       if(e.sinTotal) alerts+='<span class="alert a-nc">Falta capturar el total de la factura.</span>';
+      if(!f.revisadoCEDIS && !e.pagada) alerts+='<span class="alert" style="background:#eef2ff;color:#4f46e5">📦 Sin revisar en CEDIS</span>';
       var totalCell = e.sinTotal
         ? '<button class="btn btn-s btn-sm" onclick="abrirTotal(\''+f.folio+'\')">Capturar</button>'
         : money(f.total)+'<span class="prov" onclick="abrirTotal(\''+f.folio+'\')" style="cursor:pointer;text-decoration:underline">editar</span>';
