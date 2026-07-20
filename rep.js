@@ -29,14 +29,14 @@ async function textoPDF(file){
 
 function leerREP(txt){
   const r={docs:[]};
-  let m=txt.match(/Nombreemisor\s*:?\s*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-z0-9 .,&]*?)\s+No\.?\s*de\s*serie/i);
+  let m=txt.match(/Nombre\s*emisor\s*:?\s*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-z0-9 .,&]*?)\s+No\.?\s*de\s*serie/i);
   if(m) r.proveedor=m[1].trim();
-  m=txt.match(/Foliofiscal\s*:?\s*([0-9A-F-]{36})/i);
+  m=txt.match(/Folio\s*fiscal\s*:?\s*([0-9A-F-]{36})/i);
   r.folioFiscal = m?m[1].toUpperCase():'';
-  m=txt.match(/(\d{4}-\d{2}-\d{2})\d{2}:\d{2}:\d{2}\s+PesoMexicano/i) || txt.match(/(\d{4}-\d{2}-\d{2})/);
+  m=txt.match(/(\d{4}-\d{2}-\d{2})[ T]?\d{0,2}:?\d{0,2}:?\d{0,2}\s+(?:Transferencia|Peso|Condonaci)/i) || txt.match(/(\d{4}-\d{2}-\d{2})/);
   if(m) r.fecha=m[1];
   // Documentos relacionados: UUID Serie Folio ... parcialidad saldoAnterior ... impPagado saldoInsoluto Síobjeto
-  const re=/([0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12})\s+([A-Z]{1,4})\s+([0-9A-Za-z_-]+)\s+PesoMexicano\s+1\s+(\d+)\s+([\d,]+\.\d{2})[\s\S]*?([\d,]+\.\d{2})\s+([\d,]+\.\d{2})\s+S[íi]objeto/gi;
+  const re=/([0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12})\s+([A-Z]{1,4})\s+([0-9A-Za-z_-]+)\s+Peso\s*Mexicano\s+1\s+(\d+)\s+([\d,]+\.\d{2})[\s\S]*?([\d,]+\.\d{2})\s+([\d,]+\.\d{2})\s+S[íi]/gi;
   const agg={}; let mm;
   while((mm=re.exec(txt))!==null){
     const uuid=mm[1].toUpperCase();
@@ -152,6 +152,7 @@ async function repFile(){
     const rep=leerREP(t);
     if(!rep.docs.length){ av.textContent='No pude leer documentos relacionados en este PDF.'; return; }
     rep.docs.forEach(d=>{ d._prov=rep.proveedor; d._match=matchFactura(d); d.facturaMatch=d._match?d._match.folio:''; });
+    if(!rep.proveedor){ const fm=rep.docs.find(d=>d._match); if(fm) rep.proveedor=fm._match.proveedor; }
     repPending={rep, data:await b64(f), nombre:f.name};
     av.textContent='✓ '+esc(rep.proveedor||'')+' · '+money(rep.montoTotal)+' · '+rep.docs.length+' factura(s)';
     // preview con verificación
